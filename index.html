@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试你的本命定居城市</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        morandi1: '#EAE7E2',
+                        morandi2: '#D8D2C9',
+                        morandi3: '#BFB8AF',
+                        morandiText: '#5C5750',
+                        morandiLight: '#F4F1ED',
+                    },
+                    fontFamily: {
+                        sans: ['system-ui', 'PingFang SC', 'Hiragino Sans GB', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-shadow {
+                box-shadow: 0 4px 12px rgba(180,172,162,0.12);
+            }
+            .option-active {
+                @apply bg-morandi2 text-morandiText;
+            }
+        }
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-morandiLight text-morandiText min-h-screen">
+    <div class="max-w-xl mx-auto px-5 py-8">
+
+        <!-- 封面页（无图，文案优化） -->
+        <div id="cover" class="block">
+            <div class="bg-white rounded-2xl p-7 card-shadow">
+                <h1 class="text-[24px] font-medium text-center mb-4">测试你的本命定居城市</h1>
+                <p class="text-sm leading-relaxed text-center mb-8">
+                    不搞玄学，只看真实生活偏好✨<br>
+                    你适合烟火小城，海滨浪漫城市，还是海外慢生活？<br>
+                    一共15题，大约2分钟找到和你适配度最高的定居地
+                </p>
+                <button onclick="startTest()" class="w-full py-3 rounded-xl bg-morandi2 text-morandiText font-medium">
+                    开始测试
+                </button>
+            </div>
+        </div>
+
+        <!-- 答题区域 -->
+        <div id="quiz" class="hidden">
+            <div class="bg-white rounded-2xl p-7 card-shadow">
+                <div class="flex justify-between text-xs mb-4 text-morandiText">
+                    <span>进度 <span id="progressNum">1</span>/15</span>
+                    <span id="progressText"></span>
+                </div>
+                <div class="w-full h-1.5 bg-morandi1 rounded-full mb-6">
+                    <div id="progressBar" class="h-full bg-morandi3 rounded-full transition-all duration-300" style="width: 6.6%"></div>
+                </div>
+                <h2 id="questionTitle" class="text-lg font-medium mb-6 leading-relaxed"></h2>
+                <div id="optionWrap" class="space-y-3 mb-8"></div>
+                <button id="nextBtn" onclick="nextQuestion()" disabled class="w-full py-3 rounded-xl bg-morandi1 text-morandi3 font-medium">
+                    下一题
+                </button>
+            </div>
+        </div>
+
+        <!-- 结果页（去掉图片） -->
+        <div id="result" class="hidden">
+            <div class="bg-white rounded-2xl p-7 card-shadow">
+                <div class="text-center mb-5">
+                    <p class="text-sm mb-2">你的本命定居城市</p>
+                    <h2 id="cityName" class="text-[26px] font-medium"></h2>
+                </div>
+                <div id="cityDesc" class="text-sm leading-relaxed space-y-4 mb-8 whitespace-pre-line"></div>
+                <button onclick="restartTest()" class="w-full py-3 rounded-xl bg-morandi2 text-morandiText font-medium">
+                    重新测试
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 15道题目
+        const questions = [
+            {
+                title: "你更偏爱哪一类气候？",
+                options: ["四季分明，春夏秋冬感明显", "常年温暖，冬天不冷", "凉快为主，夏天不闷热", "喜欢干爽，讨厌潮湿"]
+            },
+            {
+                title: "日常通勤你可以接受哪种？",
+                options: ["步行骑行15分钟内搞定", "地铁30分钟以内", "开车通勤，接受一点堵车", "通勤距离无所谓，能居家最好"]
+            },
+            {
+                title: "城市生活节奏你想要？",
+                options: ["慢节奏，不用一直赶时间", "适中，工作生活能平衡", "偏快，机会多成长快", "节奏自由，不想被卷"]
+            },
+            {
+                title: "饮食口味更偏向？",
+                options: ["清淡鲜爽，爱海鲜河鲜", "重口香辣，无辣不欢", "面食碳水，醇厚主食", "甜食和清淡融合，小吃丰富"]
+            },
+            {
+                title: "潮湿天气你的接受度？",
+                options: ["完全不行，潮湿会难受", "轻微潮湿可以接受", "潮湿多雨也习惯", "只要室内能除湿就没问题"]
+            },
+            {
+                title: "闲暇时你更喜欢？",
+                options: ["安静独处，公园看书散步", "逛小店探店，看展览喝咖啡", "热闹夜市，朋友经常聚会", "户外山野，爬山看海"]
+            },
+            {
+                title: "对城市安静程度的需求？",
+                options: ["喜欢安静，避开喧嚣", "闹中取静，周边配套齐全", "喜欢热闹，烟火气浓", "热闹和安静切换自由"]
+            },
+            {
+                title: "关于收入与生活成本，你更在意？",
+                options: ["物价低，压力小，够用就好", "收入中等，房价友好", "高薪机会多，接受高消费", "性价比优先，收入和支出均衡"]
+            },
+            {
+                title: "你更喜欢什么季节？",
+                options: ["清爽春天，繁花很多", "明媚夏天，靠近水域", "舒服秋天，干爽晴朗", "冬日雪景，喜欢冷感"]
+            },
+            {
+                title: "城市配套哪项对你最重要？",
+                options: ["医疗教育资源充足", "商超外卖，生活便利", "自然风景出门就到", "产业多，就业选择广"]
+            },
+            {
+                title: "能不能接受经常下雨？",
+                options: ["不喜欢长期阴雨", "偶尔下雨很舒服", "多雨可以，景色好看", "下雨不影响我的心情"]
+            },
+            {
+                title: "社交模式你偏向？",
+                options: ["低社交，享受一个人", "少量稳定好友，不喜应酬", "愿意认识新朋友，社交轻松", "热爱社交，喜欢丰富人脉"]
+            },
+            {
+                title: "对房价和租房成本？",
+                options: ["低成本，压力最小", "中等，努力可以安家", "不排斥高成本，看重发展", "优先租房灵活，不急买房"]
+            },
+            {
+                title: "出行游玩偏好？",
+                options: ["周边古镇乡村短途游", "城市内展馆商圈逛不停", "海边沙滩度假", "高山草原自然风光"]
+            },
+            {
+                title: "长期定居，你最怕？",
+                options: ["冬天太冷难以忍受", "夏天持续高温闷热", "城市拥挤人太多", "就业机会太少发展受限"]
+            }
+        ];
+
+        // 50个城市结果：国内25｜国外25
+        const cityList = [
+            {name:"昆明",desc:"✨宜居亮点：春城名号不是吹的，全年温度柔和，阳光充足，鲜花遍地，物价友好，生活节奏慢悠悠。\n💛适合的人：喜欢温暖干爽、爱花草、不爱严寒酷暑，想要低压力生活的人。\n⚠️小缺点：优质高薪岗位偏少，医疗资源对比一线有限，雨季偶尔连绵。"},
+            {name:"大理",desc:"✨宜居亮点：苍山洱海相伴，风感舒服，烟火气和自然感平衡，节奏松弛，小吃丰富。\n💛适合的人：向往山水、喜欢独处或者轻创业，讨厌高强度内卷的人。\n⚠️小缺点：就业岗位少，淡季人流少，冬天早晚温差大，基础设施不如大城市。"},
+            {name:"成都",desc:"✨宜居亮点：烟火气拉满，美食超多，生活配套成熟，休闲选择丰富，包容度很高。\n💛适合的人：爱吃辣、喜欢热闹、爱探店，想要工作和休闲兼顾的人。\n⚠️小缺点：常年偏潮湿，冬天阴冷没有暖气，节假日人流量很大。"},
+            {name:"杭州",desc:"✨宜居亮点：西湖山水，城市绿化很好，产业机会充足，人文氛围浓厚，城市干净精致。\n💛适合的人：喜欢江南风景、有上进心，想要不错就业机会同时看重环境的人。\n⚠️小缺点：房价偏高，梅雨季节潮湿闷热，通勤高峰期容易拥堵。"},
+            {name:"苏州",desc:"✨宜居亮点：江南水乡，园林温柔，城建精致，制造业和服务业岗位多，美食清淡鲜甜。\n💛适合的人：偏爱安静雅致、四季分明，不喜欢太喧嚣繁华的人。\n⚠️小缺点：梅雨季潮湿，部分区域房价高，整体节奏比小城市更快。"},
+            {name:"青岛",desc:"✨宜居亮点：海滨城市，海风舒服，海鲜丰富，四季分明，红瓦绿树氛围感强。\n💛适合的人：喜欢海边、能接受冬天低温，爱吃海鲜面食的人。\n⚠️小缺点：冬天风大刺骨，回潮季节墙面容易发潮，好岗位集中在市区。"},
+            {name:"厦门",desc:"✨宜居亮点：海风温柔，海岛氛围感，小吃很多，城市小巧精致，常年温度温和。\n💛适合的人：偏爱温暖海边、喜欢慢逛小店，热爱文艺松弛感的人。\n⚠️小缺点：夏天漫长闷热，台风季多雨，房价和房租偏高。"},
+            {name:"威海",desc:"✨宜居亮点：海水干净，人少安静，空气很好，物价不高，海岸线绵长舒服。\n💛适合的人：想要安静海滨生活、讨厌拥挤，追求低消费宜居感的人。\n⚠️小缺点：冬天寒冷大风，就业选择不多，娱乐业态偏少。"},
+            {name:"南京",desc:"✨宜居亮点：历史底蕴足，高校多，医疗教育资源扎实，美食丰富，四季分明。\n💛适合的人：喜欢人文氛围、看重教育医疗，能接受一定生活压力的人。\n⚠️小缺点：夏天闷热火炉，冬天湿冷，城市人口多，节假日拥挤。"},
+            {name:"西安",desc:"✨宜居亮点：历史厚重，碳水美食天堂，物价友好，四季清晰，城市格局开阔。\n💛适合的人：爱吃面食、喜欢古都文化，能接受干燥大风的人。\n⚠️小缺点：夏天很热，春天偶尔沙尘，冬天寒冷干燥。"},
+            {name:"长沙",desc:"✨宜居亮点：烟火感超强，美食选择巨多，年轻人多，氛围热闹，房价相对友好。\n💛适合的人：爱吃辣、喜欢热闹夜市，热爱鲜活年轻氛围的人。\n⚠️小缺点：潮湿明显，夏天闷热，冬天湿冷，多雨。"},
+            {name:"贵阳",desc:"✨宜居亮点：夏天凉爽避暑，森林多空气好，物价适中，节奏舒缓。\n💛适合的人：怕酷暑，偏爱凉快气候，喜欢安静小城感的人。\n⚠️小缺点：常年阴雨比较多，光照偏少，产业机会有限。"},
+            {name:"珠海",desc:"✨宜居亮点：海岸线漂亮，城市干净，人没有深圳拥挤，气候常年温暖。\n💛适合的人：喜欢南方海边、追求干净低拥挤感，节奏温和的人。\n⚠️小缺点：夏天漫长湿热，台风季需要留意，高薪岗位数量少于深圳。"},
+            {name:"佛山",desc:"✨宜居亮点：挨着广州，就业联动方便，美食超多，房租房价友好很多。\n💛适合的人：想靠近大湾区机会，又不想承担广州高生活成本的人。\n⚠️小缺点：夏季湿热，部分城区工业气息重，梅雨潮湿。"},
+            {name:"宁波",desc:"✨宜居亮点：沿海小城质感，海鲜好吃，民营经济发达，收入不错，城市低调舒服。\n💛适合的人：务实，想要稳定收入，偏爱清淡海鲜口味的人。\n⚠️小缺点：梅雨季潮湿，冬天阴冷，城市宣传感不强。"},
+            {name:"烟台",desc:"✨宜居亮点：海岸线绵长，水果丰富，物价适中，节奏舒缓，四季分明。\n💛适合的人：喜欢北方海边，爱吃水果，想要安稳低压力生活的人。\n⚠️小缺点：冬天寒冷，海风大，优质岗位集中。"},
+            {name:"扬州",desc:"✨宜居亮点：江南温柔小城，早茶治愈，节奏很慢，绿化和人文很美。\n💛适合的人：偏爱慢生活、安静雅致，不追求高强度发展机会的人。\n⚠️小缺点：就业赛道窄，高薪机会很少，梅雨季潮湿。"},
+            {name:"泉州",desc:"✨宜居亮点：古城烟火，小吃宝藏，包容松弛，生活成本友好，临海。\n💛适合的人：喜欢老城氛围，热爱小吃，不想被内卷裹挟的人。\n⚠️小缺点：夏季湿热，产业以传统行业为主，高端岗位不多。"},
+            {name:"大连",desc:"✨宜居亮点：北方海滨，夏天凉爽不闷热，海鲜充足，城市整洁。\n💛适合的人：怕热、喜欢海边，接受寒冷漫长冬天的人。\n⚠️小缺点：冬天漫长寒冷，风大，冬季户外活动受限。"},
+            {name:"银川",desc:"✨宜居亮点：干爽少雨，阳光充足，夏天舒服，物价低，几乎没有回潮。\n💛适合的人：极度讨厌潮湿，偏爱干爽气候，喜欢开阔风景的人。\n⚠️小缺点：冬天很冷，干燥容易起皮，周边植被偏少，产业选择有限。"},
+            {name:"重庆",desc:"✨宜居亮点：山城独特氛围感，美食无敌，夜景好看，城市鲜活热闹。\n💛适合的人：爱吃辣、喜欢立体城市，接受爬坡，热爱热闹烟火的人。\n⚠️小缺点：湿度大，夏天酷热，爬坡多，通勤容易绕路。"},
+            {name:"合肥",desc:"✨宜居亮点：科教资源强，发展速度快，房价相比一线友好，四季分明。\n💛适合的人：看重科创机会，愿意稳步发展，适应中部气候的人。\n⚠️小缺点：夏天闷热，冬天湿冷，城市还在建设阶段。"},
+            {name:"福州",desc:"✨宜居亮点：山海兼具，小吃丰富，常年温暖，城市生活气息浓。\n💛适合的人：喜欢南方温润气候，爱小吃，接受湿热天气的人。\n⚠️小缺点：夏季漫长湿热，台风季多雨，回潮明显。"},
+            {name:"南宁",desc:"✨宜居亮点：绿城植被茂密，冬天温暖不冷，水果超多，物价亲民。\n💛适合的人：怕冷，喜欢绿植水果，偏爱松弛慢节奏的人。\n⚠️小缺点：夏天湿热漫长，回南天难受，高薪岗位不多。"},
+            {name:"南昌",desc:"✨宜居亮点：赣江穿城而过，米粉瓦罐汤很治愈，生活成本不高，城市烟火亲切。\n💛适合的人：喜欢中部城市的踏实感，爱吃粉汤，不介意潮湿闷热的人。\n⚠️小缺点：夏天炎热，冬天湿冷，雨季较长，高薪产业偏弱。"},
+
+            {name:"温哥华",desc:"✨宜居亮点：温带海洋气候，冬天温和不严寒，森林海景都有，华人友好，城市干净。\n💛适合的人：喜欢凉爽湿润、偏爱自然，想要华人配套完善海外生活的人。\n⚠️小缺点：常年阴雨天数多，房价高，税高，冬天日照很短。"},
+            {name:"奥克兰",desc:"✨宜居亮点：新西兰北岛，海风柔和，植被茂密，节奏很慢，人少安静。\n💛适合的人：喜欢田园海滨，极度讨厌内卷，追求低拥挤感的人。\n⚠️小缺点：离国内很远，物流贵，高薪岗位少，物价偏高。"},
+            {name:"墨尔本",desc:"✨宜居亮点：文艺感拉满，咖啡馆遍地，城市绿化优秀，四季分明。\n💛适合的人：爱探店展览、喜欢人文文艺，适应多变天气的人。\n⚠️小缺点：一天四季天气波动大，夏天偶尔高温山火风险，距离国内远。"},
+            {name:"布里斯班",desc:"✨宜居亮点：常年温暖，阳光充足，靠近海滩，节奏比悉尼松弛很多。\n💛适合的人：怕冷，喜欢阳光沙滩，想要温和海外生活的人。\n⚠️小缺点：夏季湿热闷热，雨季暴雨多，部分区域蚊虫多。"},
+            {name:"京都",desc:"✨宜居亮点：古寺庭院温柔，四季景色绝美，安静雅致，美食细腻清淡。\n💛适合的人：偏爱安静人文、喜欢日系美学，节奏舒缓的人。\n⚠️小缺点：生活成本偏高，就业竞争大，夏天闷热潮湿。"},
+            {name:"札幌",desc:"✨宜居亮点：干爽凉快，雪景绝美，夏天舒服，湿度低，很少闷热。\n💛适合的人：讨厌潮湿，喜欢冬天雪景，热爱干爽气候的人。\n⚠️小缺点：冬天漫长极冷，日照短，交通成本偏高。"},
+            {name:"清迈",desc:"✨宜居亮点：常年温暖，物价很低，古城松弛，节奏极慢，绿植很多。\n💛适合的人：低成本慢生活，喜欢小城安静，不爱寒冷的人。\n⚠️小缺点：热季很热，空气质量波动，医疗上限有限。"},
+            {name:"普吉",desc:"✨宜居亮点：海岛海风，全年温暖，海鲜丰富，出门就是海。\n💛适合的人：热爱海边，喜欢热带松弛度假感，不追求高速发展的人。\n⚠️小缺点：雨季暴雨多，基础设施有限，就业选择很少。"},
+            {name:"里斯本",desc:"✨宜居亮点：南欧阳光充足，冬天温和，物价偏低，节奏慢悠悠。\n💛适合的人：喜欢阳光老城，偏爱松弛南欧氛围，不爱严寒的人。\n⚠️小缺点：夏季干燥高温，英语普及度一般，高薪机会少。"},
+            {name:"巴塞罗那",desc:"✨宜居亮点：地中海气候，山海兼具，美食丰富，热闹又浪漫。\n💛适合的人：喜欢热闹、热爱美食，接受温暖干燥夏天的人。\n⚠️小缺点：夏天炎热干燥，游客多，房租不便宜。"},
+            {name:"阿姆斯特丹",desc:"✨宜居亮点：运河小城，骑行友好，包容度高，城市精致清爽。\n💛适合的人：喜欢骑车散步，偏爱秩序感、开放氛围的人。\n⚠️小缺点：常年多雨阴天，冬天阴冷，物价和税偏高。"},
+            {name:"哥本哈根",desc:"✨宜居亮点：北欧极简，城市安全，绿化好，生活幸福感高。\n💛适合的人：喜欢安静低社交，偏爱简约干净生活的人。\n⚠️小缺点：冬天漫长黑暗寒冷，物价极高，税很重。"},
+            {name:"柏林",desc:"✨宜居亮点：文艺自由，房租友好，创意产业多，包容度强。\n💛适合的人：喜欢小众文化，自由松弛，创意行业的人。\n⚠️小缺点：冬天阴冷少阳光，经济一般，高薪岗位有限。"},
+            {name:"西雅图",desc:"✨宜居亮点：森林湖泊环绕，凉爽不酷热，科技机会充足。\n💛适合的人：喜欢湿润森林环境，科技行业，不怕阴雨的人。\n⚠️小缺点：一年大半时间阴雨，日照很少，房价高。"},
+            {name:"波特兰",desc:"✨宜居亮点：节奏舒缓，咖啡文化浓厚，自然很近，没有销售税。\n💛适合的人：热爱户外、喜欢小众小店，追求松弛感的人。\n⚠️小缺点：长期阴雨，冬天阴冷，高薪岗位少于西雅图。"},
+            {name:"多伦多",desc:"✨宜居亮点：多元包容，华人配套成熟，四季分明，就业选择广。\n💛适合的人：想要多元城市，看重就业，适应四季变化的人。\n⚠️小缺点：冬天漫长严寒，雪很大，房产税偏高。"},
+            {name:"蒙特利尔",desc:"✨宜居亮点：法式浪漫，文艺氛围浓，物价相比多伦多友好。\n💛适合的人：喜欢老城文艺，接受漫长冬天，喜欢慢氛围的人。\n⚠️小缺点：冬天极冷，法语环境，就业有语言门槛。"},
+            {name:"悉尼",desc:"✨宜居亮点：港湾海景漂亮，阳光充足，城市成熟，配套完善。\n💛适合的人：热爱海边阳光，想要成熟便利海外城市的人。\n⚠️小缺点：房价房租很贵，夏季高温山火风险，消费高。"},
+            {name:"大阪",desc:"✨宜居亮点：关西烟火，美食多，物价对比东京友好，热闹接地气。\n💛适合的人：爱吃、喜欢热闹市井，想要日系便利生活的人。\n⚠️小缺点：夏天闷热潮湿，人口密集，通勤拥挤。"},
+            {name:"福冈",desc:"✨宜居亮点：小城舒服，美食宝藏，节奏比东京大阪舒缓很多。\n💛适合的人：想要日系便利，不喜欢大城市拥挤内卷的人。\n⚠️小缺点：城市规模小，高端就业机会不多，梅雨季潮湿。"},
+            {name:"新加坡",desc:"✨宜居亮点：城市整洁安全，华人环境，四季常温，配套拉满。\n💛适合的人：看重安全便利，怕冷，接受紧凑城市节奏的人。\n⚠️小缺点：国土很小，湿热常年，房价租金很贵，竞争压力不小。"},
+            {name:"吉隆坡",desc:"✨宜居亮点：热带温暖，物价亲民，华人多，美食选择超多。\n💛适合的人：怕冷，想要低成本海外生活，爱吃东南亚美食的人。\n⚠️小缺点：常年湿热，雨季暴雨，基础设施上限有限。"},
+            {name:"维也纳",desc:"✨宜居亮点：常年宜居榜单前列，秩序感强，人文音乐氛围浓厚。\n💛适合的人：偏爱安静优雅，看重城市福利和安全感的人。\n⚠️小缺点：冬天寒冷，生活节奏偏保守，语言门槛存在。"},
+            {name:"济州岛",desc:"✨宜居亮点：海岛清新，四季风景不同，空气干净，节奏舒缓。\n💛适合的人：喜欢小岛安静，偏爱干净清新氛围，不爱拥挤的人。\n⚠️小缺点：就业机会极少，物价偏高，冬季海风冷。"},
+            {name:"惠灵顿",desc:"✨宜居亮点：海风城市，节奏慢，咖啡馆精致，四季温差不大。\n💛适合的人：喜欢安静海边小城，适应多风天气，追求低压力生活的人。\n⚠️小缺点：风大，离国内远，娱乐和就业选择有限。"}
+        ];
+
+        let currentQ = 0;
+        let score = 0;
+        let selected = -1;
+
+        function startTest() {
+            document.getElementById("cover").classList.add("hidden");
+            document.getElementById("quiz").classList.remove("hidden");
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQ];
+            document.getElementById("questionTitle").innerText = q.title;
+            const wrap = document.getElementById("optionWrap");
+            wrap.innerHTML = "";
+            selected = -1;
+
+            document.getElementById("nextBtn").disabled = true;
+            document.getElementById("nextBtn").classList.add("bg-morandi1", "text-morandi3");
+            document.getElementById("nextBtn").classList.remove("bg-morandi2", "text-morandiText");
+
+            q.options.forEach((opt, i) => {
+                const div = document.createElement("div");
+                div.className = "py-3 px-4 rounded-xl border border-morandi2 text-sm leading-relaxed";
+                div.innerText = opt;
+                div.onclick = () => selectOption(i);
+                wrap.appendChild(div);
+            });
+
+            document.getElementById("progressNum").innerText = currentQ + 1;
+            document.getElementById("progressBar").style.width = ((currentQ + 1) / 15 * 100) + "%";
+        }
+
+        function selectOption(i) {
+            selected = i;
+            const items = document.getElementById("optionWrap").children;
+            for (let j = 0; j < items.length; j++) {
+                items[j].classList.remove("option-active");
+            }
+            items[i].classList.add("option-active");
+            score += i;
+
+            document.getElementById("nextBtn").disabled = false;
+            document.getElementById("nextBtn").classList.remove("bg-morandi1", "text-morandi3");
+            document.getElementById("nextBtn").classList.add("bg-morandi2", "text-morandiText");
+        }
+
+        function nextQuestion() {
+            currentQ++;
+            if (currentQ >= questions.length) {
+                showResult();
+                return;
+            }
+            renderQuestion();
+        }
+
+        function showResult() {
+            document.getElementById("quiz").classList.add("hidden");
+            document.getElementById("result").classList.remove("hidden");
+
+            const maxScore = 15 * 3;
+            const ratio = score / maxScore;
+            const idx = Math.min(Math.floor(ratio * cityList.length), cityList.length - 1);
+            const city = cityList[idx];
+
+            document.getElementById("cityName").innerText = city.name;
+            document.getElementById("cityDesc").innerText = city.desc;
+        }
+
+        function restartTest() {
+            currentQ = 0;
+            score = 0;
+            selected = -1;
+            document.getElementById("result").classList.add("hidden");
+            document.getElementById("quiz").classList.add("hidden");
+            document.getElementById("cover").classList.remove("hidden");
+        }
+    </script>
+</body>
+</html>
